@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: bookingdb
+      POSTGRES_USER: jugger
+      POSTGRES_PASSWORD: passw0rd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bookthething-network
+
+  # API Gateway
+  api-gateway:
+    build: 
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - postgres
+    networks:
+      - bookthething-network
+
+  # Booking Service
+  booking-service:
+    build: 
+      context: ./booking-service
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
+      - SPRING_DATASOURCE_USERNAME=jugger
+      - SPRING_DATASOURCE_PASSWORD=passw0rd
+    depends_on:
+      - postgres
+    networks:
+      - bookthething-network
+
+volumes:
+  postgres_data:
+
+networks:
+  bookthething-network:
+    driver: bridge
