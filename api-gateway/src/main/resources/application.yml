@@ -4,22 +4,22 @@ server:
 spring:
   cloud:
     gateway:
-      default-filters:
-        - StripPrefix=1  # remove first path segment (optional)
+      # default-filters:
+      #   - StripPrefix=1  # remove first path segment (optional)
       routes:
         - id: user-service
           uri: http://localhost:8081
           predicates:
-            - Path=/api/users/**
+            - Path=/api/v1/users/**
         - id: booking-service
           uri: http://localhost:8082
           predicates:
-            - Path=/api/bookings/**
+            - Path=/api/v1/bookings/**
         - id: item-service
           uri: http://localhost:8083
           predicates:
-            - Path=/api/items/**
+            - Path=/api/v1/items/**
         - id: payment-service
           uri: http://localhost:8084
           predicates:
-            - Path=/api/payments/**
+            - Path=/api/v1/payments/**
