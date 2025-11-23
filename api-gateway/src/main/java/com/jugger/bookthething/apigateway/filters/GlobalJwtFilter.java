@@ -19,8 +19,8 @@ public class GlobalJwtFilter implements GlobalFilter {
 
     // Public paths that DO NOT require JWT
     private static final List<String> OPEN_API_ENDPOINTS = List.of(
-        "/api/v1/users/login",
-        "/api/v1/users/register",
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
         "/eureka",
         "/swagger",
         "/actuator"
@@ -31,12 +31,11 @@ public class GlobalJwtFilter implements GlobalFilter {
        String path = exchange.getRequest().getURI().getPath();
        System.out.println(">>> Incoming path: " + path);
 
-        // Allow public endpoints
-        if (OPEN_API_ENDPOINTS.stream().anyMatch(path::startsWith)) {
+          // 1️⃣ ALLOW EXACT PUBLIC ENDPOINTS
+        if (OPEN_API_ENDPOINTS.contains(path)) {
+            System.out.println(">>> Allowed public endpoint");
             return chain.filter(exchange);
         }
-
-        
         // Check JWT
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
