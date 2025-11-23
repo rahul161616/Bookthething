@@ -1,11 +1,12 @@
 package com.jugger.authservice.service;
 
 import com.jugger.authservice.model.User;
-import org.springframework.security.crypto.bcrypt.BCrypt;
+// import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.jugger.authservice.config.JwtUtil;
+import com.jugger.authservice.dto.AuthResponse;
 import com.jugger.authservice.repository.UserRepository;
 
 @Service
@@ -20,29 +21,43 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }   
-    public String register(String username,String password){
-        if(repo.findByUsername(username)!=null){
-            return "Username already exists";
-        }else{
-            User usr = new User();
-            usr.setUsername(username);
-            usr.setPassword(passwordEncoder.encode(password));
-            repo.save(usr);
-            return "User registered successfully";
-        }
+    //REGISTER METHODS
+    public AuthResponse register(String username, String password) {
+        if (repo.findByUsername(username) != null)
+            return AuthResponse.fail("Username already exists");
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        repo.save(user);
+        String accessToken = jwtUtil.generateToken(username);
+        return AuthResponse.success(accessToken, null);
     }
-    public String login(String username,String password){
+    
+    //LOGIN METHODS - return access token
+    public AuthResponse login(String username, String password) {
         User usr = repo.findByUsername(username);
-        if(usr==null){
-            return "User not found";
-        }else{
-            if(passwordEncoder.matches(password, usr.getPassword())){
-                return jwtUtil.generateToken(username);
-            }else{
-                return "Invalid credentials";
-            }
+        if (usr == null) return AuthResponse.fail("User not found");
+        if (!passwordEncoder.matches(password, usr.getPassword())) {
+            return AuthResponse.fail("Invalid credentials");
         }
+        String accessToken = jwtUtil.generateToken(username);
+        return AuthResponse.success(accessToken, null);
     }
     
-    
+    // AuthService.java
+    public Long getUserId(String username) {
+     User user = repo.findByUsername(username);
+        return user != null ? user.getId() : null;
+    }
+
+    public String generateAccessToken(Long userId) {
+    User user = repo.findById(userId).orElse(null);
+    if (user == null) return null;
+    return jwtUtil.generateToken(user.getUsername());
 }
+
+}
+
+    
+    

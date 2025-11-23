@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 @Component
 public class JwtUtil {
@@ -18,25 +19,36 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
     }
 
-    public Claims extractAllClaims(String token) {
+    public Claims parse(String token) {
         return Jwts.parser()
+                .decryptWith(getSigningKey())
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)  // standard for HS256
                 .getPayload();
     }
+      // Extract roles (if present)
+    public Object extractRoles(String token) {
+        Claims claims = parse(token);
+        return claims.get("roles");
+    }
+
 
     public boolean validateToken(String token) {
         try {
-            extractAllClaims(token);
+            parse(token);
             return true;
         } catch (Exception e) {
             System.out.println("JWT Validation failed: " + e.getMessage());
             return false;
         }
     }
+     // Check if expired
+    private boolean isTokenExpired(Claims claims) {
+        return claims.getExpiration().before(new Date());
+    }
 
     public String getUserId(String token) {
-        return extractAllClaims(token).getSubject();
+        return parse(token).getSubject();
     }
 }

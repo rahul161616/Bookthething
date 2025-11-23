@@ -31,11 +31,12 @@ public class GlobalJwtFilter implements GlobalFilter {
        String path = exchange.getRequest().getURI().getPath();
        System.out.println(">>> Incoming path: " + path);
 
-          // 1️⃣ ALLOW EXACT PUBLIC ENDPOINTS
-        if (OPEN_API_ENDPOINTS.contains(path)) {
-            System.out.println(">>> Allowed public endpoint");
+          // allow auth service public routes
+        if (OPEN_API_ENDPOINTS.stream().anyMatch(path::startsWith)) {
             return chain.filter(exchange);
         }
+
+       
         // Check JWT
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -45,10 +46,11 @@ public class GlobalJwtFilter implements GlobalFilter {
 
         String token = authHeader.substring(7);
         if (!jwtUtil.validateToken(token)) {
+            System.out.println(">>>Invalid Jwt Token");
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
-
+        System.out.println(">>>Jwt Validated Successfully");
         return chain.filter(exchange);
     }
 }
