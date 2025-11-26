@@ -51,6 +51,15 @@ public class GlobalJwtFilter implements GlobalFilter {
             return exchange.getResponse().setComplete();
         }
         System.out.println(">>>Jwt Validated Successfully");
-        return chain.filter(exchange);
+
+        // Extract username from JWT
+        String username = jwtUtil.getUsername(token);
+        
+        // 🔥 Mutate request and inject X-Username header
+        ServerWebExchange mutatedExchange = exchange.mutate()
+        .request(r -> r.headers(h -> h.set("X-Username", username)))
+        .build();
+        
+        return chain.filter(mutatedExchange);
     }
 }

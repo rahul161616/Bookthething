@@ -48,7 +48,7 @@ public class JwtUtil {
         return claims.getExpiration().before(new Date());
     }
 
-    public String getUserId(String token) {
+    public String getUsername(String token) {
         return parse(token).getSubject();
     }
 }
