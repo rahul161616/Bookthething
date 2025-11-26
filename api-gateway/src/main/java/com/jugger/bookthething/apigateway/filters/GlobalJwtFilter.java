@@ -52,12 +52,28 @@ public class GlobalJwtFilter implements GlobalFilter {
         }
         System.out.println(">>>Jwt Validated Successfully");
 
-        // Extract username from JWT
+        // Extract username and userId from JWT
         String username = jwtUtil.getUsername(token);
+        Long userId = jwtUtil.getUserId(token);
         
-        // 🔥 Mutate request and inject X-Username header
+        System.out.println(">>> Extracted username: " + username);
+        System.out.println(">>> Extracted userId: " + userId);
+        
+        // 🔥 Mutate request and inject both headers
         ServerWebExchange mutatedExchange = exchange.mutate()
-        .request(r -> r.headers(h -> h.set("X-Username", username)))
+        .request(r -> r.headers(h -> {
+            h.set("X-Username", username);
+            if (userId != null) {
+                // Convert Long userId to UUID format for booking service
+                // Using a deterministic UUID based on the userId
+                java.util.UUID userUuid = new java.util.UUID(0L, userId);
+                String uuidString = userUuid.toString();
+                h.set("X-User-Id", uuidString);
+                System.out.println(">>> Set X-User-Id: " + uuidString + " (from userId: " + userId + ")");
+            } else {
+                System.out.println(">>> Warning: userId is null in JWT token, not setting X-User-Id header");
+            }
+        }))
         .build();
         
         return chain.filter(mutatedExchange);

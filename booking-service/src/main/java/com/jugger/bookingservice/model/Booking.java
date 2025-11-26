@@ -33,8 +33,8 @@ public class Booking {
     @Column(name = "user_id", nullable = false)
     private UUID userId;      // reference to User Service
     
-    @Column(name = "item_id", nullable = false)
-    private UUID itemId;      // reference to Item Service
+    @Enumerated(EnumType.STRING)
+    private BookingType bookingType;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

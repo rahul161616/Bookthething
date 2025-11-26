@@ -51,4 +51,8 @@ public class JwtUtil {
     public String getUsername(String token) {
         return parse(token).getSubject();
     }
+    
+    public Long getUserId(String token) {
+        return parse(token).get("userId", Long.class);
+    }
 }
