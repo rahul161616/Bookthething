@@ -1,9 +1,9 @@
 package com.jugger.bookingservice.controller;
 
-// import java.math.BigDecimal;
-// import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-// import java.util.Map;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jugger.bookingservice.dto.BookingDto;
-import com.jugger.bookingservice.mapper.BookingMapper;
 import com.jugger.bookingservice.model.Booking;
 import com.jugger.bookingservice.model.BookingStatus;
 import com.jugger.bookingservice.model.BookingType;
@@ -43,33 +42,34 @@ public class BookingController {
     public ResponseEntity<BookingDto> createBooking(
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestHeader(value = "X-Username", required = false) String username,
-            @RequestBody BookingDto requestDto) {
+            @RequestBody Map<String, Object> request) {
 
         try {
             UUID userId = getUserUUIDFromHeaders(userIdHeader, username);
-            if (userId == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(null);
+            }
+            
+            UUID itemId = UUID.fromString(request.get("itemId").toString());
+            LocalDateTime startTime = LocalDateTime.parse(request.get("startTime").toString());
+            LocalDateTime endTime = LocalDateTime.parse(request.get("endTime").toString());
+            BigDecimal price = new BigDecimal(request.get("price").toString());
+            // Booking type
+            String typeStr = request.getOrDefault("type", "STANDARD").toString();
+            BookingType bookingType = BookingType.valueOf(typeStr.toUpperCase());
 
-            BookingType type = requestDto.getBookingType() != null
-                    ? requestDto.getBookingType()
-                    : BookingType.FUTSAL;
-
-            BookingDto created = bookingService.createBooking(
-                    userId,
-                    requestDto.getStartTime(),
-                    requestDto.getEndTime(),
-                    requestDto.getPrice(),
-                    type
-            );
-
+            Map<String, Object> metadata = (Map<String, Object>) request.getOrDefault("metadata", Map.of());
+            BookingDto created = bookingService.createBooking(userId, itemId, startTime, endTime, price, bookingType,metadata);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
 
         } catch (Exception e) {
-            log.error("Error creating booking: {}", e.getMessage());
+            log.error("Error creating booking for user {}/{}: {}", userIdHeader, username, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        }      
     }
 
-     // ------------------ Get All Bookings for User ------------------
+      // ------------------ USER BOOKINGS ------------------
     @GetMapping
     public ResponseEntity<List<BookingDto>> getUserBookings(
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
@@ -80,73 +80,63 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         
-        List<BookingDto> bookings = bookingService.getBookingsByUser(userId);
-        return ResponseEntity.ok(bookings);
+        return ResponseEntity.ok(
+                bookingService.getBookingsByUser(userId)
+        );
     }
 
-    // ------------------ Get Booking by ID ------------------
-     // Get all bookings (optional type filter)
-    @GetMapping
-    public ResponseEntity<List<BookingDto>> getUserBookings(
-            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
-            @RequestHeader(value = "X-Username", required = false) String username,
-            @RequestParam(required = false) BookingType type) {
-
-        UUID userId = getUserUUIDFromHeaders(userIdHeader, username);
-        if (userId == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-
-        List<BookingDto> bookings = (type != null)
-                ? bookingService.getBookingsByType(userId, type)
-                : bookingService.getBookingsByUser(userId);
-
-        return ResponseEntity.ok(bookings);
-    }
-    
-    // Get booking by ID
+    // ------------------ GET ONE BOOKING ------------------
     @GetMapping("/{id}")
-    public ResponseEntity<BookingDto> getBookingById(
-            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
-            @RequestHeader(value = "X-Username", required = false) String username,
+    public ResponseEntity<BookingDto> getBooking(
+            @RequestHeader("X-User-Id") String userIdHeader,
             @PathVariable UUID id) {
 
-        UUID userId = getUserUUIDFromHeaders(userIdHeader, username);
-        if (userId == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        UUID userId = UUID.fromString(userIdHeader);
 
         return bookingService.getBookingById(id, userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-     // ------------------ Update Booking Status ------------------
-    // Update status
-    @PutMapping("/{bookingId}/status")
-    public ResponseEntity<BookingDto> updateBookingStatus(
-            @PathVariable UUID bookingId,
+    // ------------------ UPDATE STATUS ------------------
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Booking> updateStatus(
+            @PathVariable UUID id,
             @RequestParam BookingStatus status) {
 
-        try {
-            Booking updated = bookingService.updateBookingStatus(bookingId, status);
-            return ResponseEntity.ok(BookingMapper.toDto(updated));
-        } catch (Exception e) {
-            log.error("Error updating booking status: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-   // ------------------ Health Check ------------------
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Booking Service is up and running!");
+        return ResponseEntity.ok(bookingService.updateBookingStatus(id, status));
     }
 
-    // Helper method for UUID
+     // ------------------ HEALTH ------------------
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("Booking Service alive!");
+    }
+
+    /**
+     * Helper method to extract UUID from headers with fallback support
+     * @param userIdHeader Direct UUID header value (X-User-Id)
+     * @param username Fallback username for lookup (X-Username)
+     * @return UUID representing the user
+     */
     private UUID getUserUUIDFromHeaders(String userIdHeader, String username) {
-        if (userIdHeader != null && !userIdHeader.isEmpty()) {
-            try { return UUID.fromString(userIdHeader); }
-            catch (IllegalArgumentException e) { /* fallback below */ }
-        }
-        if (username != null && !username.isEmpty()) {
+        if (userIdHeader != null && !userIdHeader.trim().isEmpty()) {
+            try {
+                return UUID.fromString(userIdHeader);
+            } catch (IllegalArgumentException e) {
+                // If userIdHeader is not a valid UUID, fall back to username lookup
+                // This could involve a service call to resolve username to UUID
+                // For now, generate a deterministic UUID from username
+                if (username != null) {
+                    return UUID.nameUUIDFromBytes(username.getBytes());
+                }
+                throw new RuntimeException("Unable to determine user ID from headers");
+            }
+        } else if (username != null && !username.trim().isEmpty()) {
+            // Generate deterministic UUID from username
             return UUID.nameUUIDFromBytes(username.getBytes());
+        } else {
+            throw new RuntimeException("No valid user identification found in headers");
         }
-        return null;
     }
 }

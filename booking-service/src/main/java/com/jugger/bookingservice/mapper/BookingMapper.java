@@ -11,11 +11,13 @@ public class BookingMapper {
      public static BookingDto toDto(Booking booking) {
           BookingDto dto = new BookingDto();
         dto.setId(booking.getId());
-        // dto.setItemId(booking.getId()); // assuming each booking is linked to a specific item/resource
+        dto.setUserId(booking.getUserId());
+        dto.setItemId(booking.getItemId()); // assuming each booking is linked to a specific item/resource
         dto.setBookingType(booking.getBookingType());
         dto.setStartTime(booking.getStartTime());
         dto.setEndTime(booking.getEndTime());
         dto.setPrice(booking.getPrice());
+        dto.setMetadata(booking.getMetadata());
         dto.setStatus(booking.getStatus());
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());

@@ -2,7 +2,11 @@ package com.jugger.bookingservice.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -32,8 +36,12 @@ public class Booking {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;      // reference to User Service
+
+    @Column(name = "item_id", nullable = false)
+    private UUID itemId;
     
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private BookingType bookingType;
 
     @Column(name = "start_time", nullable = false)
@@ -64,7 +72,11 @@ public class Booking {
             status = BookingStatus.PENDING;
         }
     }
-    
+        // ✔ METADATA JSON (supports nested JSON objects)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> metadata;
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();

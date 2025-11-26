@@ -6,5 +6,5 @@ public enum BookingType {
     TENNIS,
     MEDICAL_APPOINTMENT,
     CONFERENCE_ROOM,
-    
+    ROOM_BOOKING
 }
