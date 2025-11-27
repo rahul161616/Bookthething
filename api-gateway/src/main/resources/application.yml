@@ -1,5 +1,6 @@
 server:
   port: 8080
+  address: 0.0.0.0
 
 spring:
   cloud:
@@ -15,18 +16,14 @@ spring:
           uri: http://localhost:8083
           predicates:
             - Path=/api/v1/users/**
-        - id: booking-service
-          uri: http://localhost:8082
+        - id: booking-orchestrator
+          uri: http://localhost:8086
           predicates:
             - Path=/api/v1/bookings/**
-        - id: item-service
-          uri: http://localhost:8084
+        - id: futsal-service
+          uri: http://localhost:8087
           predicates:
-            - Path=/api/v1/items/**
-        - id: payment-service
-          uri: http://localhost:8085
-          predicates:
-            - Path=/api/v1/payments/**
+            - Path=/api/v1/futsal/**
         - id: profile-service
           uri: http://localhost:8083
           predicates:

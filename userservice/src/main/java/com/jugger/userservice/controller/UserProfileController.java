@@ -4,15 +4,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.jugger.userservice.dto.UserDto;
+import com.jugger.userservice.dto.CreateUserProfileRequest;
+// import com.jugger.userservice.dto.UserDto;
+import com.jugger.userservice.dto.UserProfileResponse;
+import com.jugger.userservice.model.UserProfile;
 import com.jugger.userservice.service.UserProfileService;
 
-import jakarta.servlet.http.HttpServletRequest;
+// import jakarta.servlet.http.HttpServletRequest;
+import lombok.Data;
 
+@Data
 @RestController
 @RequestMapping("/api/v1/profile")
 public class UserProfileController
@@ -22,64 +28,22 @@ public class UserProfileController
     public UserProfileController(UserProfileService service) {
         this.service = service;
     }
-// Profile endpoint: GET /api/v1/users/me
-    @GetMapping("/me")
-    public ResponseEntity<?> getProfile(HttpServletRequest request) {
-
-        String username = request.getHeader("X-Username");
-
-        if (username == null) {
-            return ResponseEntity.status(401).body("Missing X-Username header (gateway misconfigured)");
-        }
-
-        UserDto dto = service.getUserByUsername(username);
-
-        if (dto == null) return ResponseEntity.status(404).body("User not found");
-
-        return ResponseEntity.ok(dto);
-    }
-
-    // GET /api/v1/users/id/{id}
-    @GetMapping("/id/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id){
-        UserDto dto = service.getUserById(id);
-        return dto == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
-    }
-    
-    // POST /api/v1/profile/create - Internal endpoint for profile creation
     @PostMapping("/create")
-    public ResponseEntity<?> createProfile(@RequestBody CreateProfileRequest request) {
-        try {
-            boolean created = service.createProfile(
-                request.getUserId(), 
-                request.getUsername(), 
-                request.getEmail()
-            );
-            
-            if (created) {
-                return ResponseEntity.ok("Profile created successfully");
-            } else {
-                return ResponseEntity.badRequest().body("Failed to create profile");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<UserProfileResponse> createProfile(@RequestBody CreateUserProfileRequest request) {
+        return ResponseEntity.ok(service.createUserProfile(request));
     }
-    
-    // Inner class for create profile request
-    public static class CreateProfileRequest {
-        private Long userId;
-        private String username;
-        private String email;
-        
-        // Getters and setters
-        public Long getUserId() { return userId; }
-        public void setUserId(Long userId) { this.userId = userId; }
-        
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserProfileResponse> getProfile(@PathVariable Long userId) {
+        UserProfileResponse response = service.getUserProfile(userId);
+        if (response == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<UserProfileResponse> updateProfile(@PathVariable Long userId, @RequestBody UserProfile updatedProfile) {
+        UserProfileResponse response = service.updateUserProfile(userId, updatedProfile);
+        if (response == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(response);
     }
 }

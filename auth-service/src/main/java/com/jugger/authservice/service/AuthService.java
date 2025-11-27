@@ -9,20 +9,17 @@ import com.jugger.authservice.config.JwtUtil;
 import com.jugger.authservice.dto.AuthResponse;
 import com.jugger.authservice.repository.UserRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository repo;
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder;
     private final ProfileService profileService;
-    
-    public AuthService(UserRepository repo, JwtUtil jwtUtil, BCryptPasswordEncoder passwordEncoder, ProfileService profileService) {
-        this.repo = repo;
-        this.jwtUtil = jwtUtil;
-        this.passwordEncoder = passwordEncoder;
-        this.profileService = profileService;
-    }   
+      
     //REGISTER METHODS
     public AuthResponse register(String username, String password) {
         if (repo.findByUsername(username) != null)
@@ -31,14 +28,14 @@ public class AuthService {
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
+        user.setRole(com.jugger.authservice.model.Role.USER);
         repo.save(user);
         
         // Create user profile automatically
-        Long userId = user.getId();
-        String defaultEmail = username + "@example.com"; // You can modify this to accept email in registration
-        profileService.createUserProfile(userId, username, defaultEmail);
+         // Create user profile
+        profileService.createUserProfile(user.getId(), username, username + "@example.com");
         
-        String accessToken = jwtUtil.generateToken(username, userId);
+        String accessToken = jwtUtil.generateToken(user);
         return AuthResponse.success(accessToken, null);
     }
     
@@ -49,7 +46,7 @@ public class AuthService {
         if (!passwordEncoder.matches(password, usr.getPassword())) {
             return AuthResponse.fail("Invalid credentials");
         }
-        String accessToken = jwtUtil.generateToken(username, usr.getId());
+        String accessToken = jwtUtil.generateToken(usr);
         return AuthResponse.success(accessToken, null);
     }
     
@@ -62,7 +59,7 @@ public class AuthService {
     public String generateAccessToken(Long userId) {
     User user = repo.findById(userId).orElse(null);
     if (user == null) return null;
-    return jwtUtil.generateToken(user.getUsername());
+    return jwtUtil.generateToken(user);
 }
 
 }

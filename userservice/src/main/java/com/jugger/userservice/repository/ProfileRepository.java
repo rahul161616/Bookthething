@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.jugger.userservice.model.UserProfile;
 
 public interface ProfileRepository extends JpaRepository<UserProfile, Long> {
-    Optional<UserProfile> findByUserame(String userame);
+    Optional<UserProfile> findByUserId(Long userId);
 }

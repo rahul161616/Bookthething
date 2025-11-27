@@ -5,15 +5,20 @@ import lombok.Data;
 
 @Entity
 @Data
+@Table(name="user_profiles")
 public class UserProfile {
 
     @Id
-    private Long userId; // same as auth-service user ID
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id; // same as auth-service user ID
 
-    @Column(nullable=false, unique =true)
-    private String userame;
-    @Column(nullable=false, unique =true)
+    @Column(nullable = false)
+    private Long userId;  // FK to AuthService User ID
+    @Column(nullable=false)
+    private String username;
+    @Column(nullable=false)
     private String email;
     private String phone;
     private String address;
+    
 }

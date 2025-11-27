@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -14,6 +12,108 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - bookthething-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jugger -d bookingdb"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Auth Service
+  auth-service:
+    build: 
+      context: ./auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
+      - SPRING_DATASOURCE_USERNAME=jugger
+      - SPRING_DATASOURCE_PASSWORD=passw0rd
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bookthething-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # User Service
+  user-service:
+    build: 
+      context: ./userservice
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
+      - SPRING_DATASOURCE_USERNAME=jugger
+      - SPRING_DATASOURCE_PASSWORD=passw0rd
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bookthething-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Futsal Service
+  futsal-service:
+    build: 
+      context: ./futsal-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
+      - SPRING_DATASOURCE_USERNAME=jugger
+      - SPRING_DATASOURCE_PASSWORD=passw0rd
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bookthething-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8087/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Booking Orchestrator
+  booking-orchestrator:
+    build: 
+      context: ./booking-orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
+      - SPRING_DATASOURCE_USERNAME=jugger
+      - SPRING_DATASOURCE_PASSWORD=passw0rd
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - USER_SERVICE_URL=http://user-service:8083
+      - FUTSAL_SERVICE_URL=http://futsal-service:8087
+    depends_on:
+      - postgres
+      - auth-service
+      - user-service
+      - futsal-service
+    networks:
+      - bookthething-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8086/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # API Gateway
   api-gateway:
@@ -24,27 +124,22 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - USER_SERVICE_URL=http://user-service:8083
+      - FUTSAL_SERVICE_URL=http://futsal-service:8087
+      - BOOKING_ORCHESTRATOR_URL=http://booking-orchestrator:8086
     depends_on:
-      - postgres
+      - auth-service
+      - user-service
+      - futsal-service
+      - booking-orchestrator
     networks:
       - bookthething-network
-
-  # Booking Service
-  booking-service:
-    build: 
-      context: ./booking-service
-      dockerfile: Dockerfile
-    ports:
-      - "8082:8082"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
-      - SPRING_DATASOURCE_USERNAME=jugger
-      - SPRING_DATASOURCE_PASSWORD=passw0rd
-    depends_on:
-      - postgres
-    networks:
-      - bookthething-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

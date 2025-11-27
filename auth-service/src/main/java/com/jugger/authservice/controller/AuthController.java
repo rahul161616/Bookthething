@@ -25,52 +25,38 @@ public class AuthController {
         this.authService = authService;
         this.refreshTokenService = refreshTokenService;
     }
-    @PostMapping("/register")
+      @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody AuthRequest req) {
         AuthResponse response = authService.register(req.getUsername(), req.getPassword());
-
-        if (!response.getMessage().equals("Success")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-
-        Long userId = authService.getUserId(req.getUsername());
-        String refreshToken = refreshTokenService.createRefreshToken(userId, "web-client");
-        response = new AuthResponse(response.getAccessToken(), refreshToken, "Success");
-
+        if (!response.isSuccess()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         return ResponseEntity.ok(response);
     }
-
     //Refresh Token Endpoint
    @PostMapping("/refresh")
-public ResponseEntity<AuthResponse> refresh(@RequestParam String refreshToken) {
-    if (!refreshTokenService.validateRefreshToken(refreshToken)) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new AuthResponse(null, null, "Invalid or expired refresh token"));
+    public ResponseEntity<AuthResponse> refresh(@RequestParam String refreshToken) {
+        if (!refreshTokenService.validateRefreshToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(AuthResponse.fail("Invalid or expired refresh token"));
+        }
+
+        Long userId = refreshTokenService.getUserIdFromToken(refreshToken);
+        String newAccessToken = authService.generateAccessToken(userId);
+
+        refreshTokenService.revokeRefreshToken(refreshToken);
+        String newRefreshToken = refreshTokenService.createRefreshToken(userId, "web-client");
+
+        return ResponseEntity.ok(AuthResponse.success(newAccessToken, newRefreshToken));
     }
 
-    Long userId = refreshTokenService.getUserIdFromToken(refreshToken);
-    String newAccessToken = authService.generateAccessToken(userId);
-
-    // Revoke old refresh token and issue a new one
-    refreshTokenService.revokeRefreshToken(refreshToken);
-    String newRefreshToken = refreshTokenService.createRefreshToken(userId, "web-client");
-
-    AuthResponse response = new AuthResponse(newAccessToken, newRefreshToken, "Success");
-    return ResponseEntity.ok(response);
-}
-
   //Login End pointt
-    @PostMapping("/login")
+      @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest req) {
         AuthResponse response = authService.login(req.getUsername(), req.getPassword());
-
-        if (!response.getMessage().equals("Success")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-        }
+        if (!response.isSuccess()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
 
         Long userId = authService.getUserId(req.getUsername());
         String refreshToken = refreshTokenService.createRefreshToken(userId, "web-client");
-        response = new AuthResponse(response.getAccessToken(), refreshToken, "Success");
+        response.setRefreshToken(refreshToken);
 
         return ResponseEntity.ok(response);
     }

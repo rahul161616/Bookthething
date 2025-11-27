@@ -1,12 +1,13 @@
 package com.jugger.userservice.service;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 
 import com.jugger.userservice.model.UserProfile;
 import com.jugger.userservice.repository.ProfileRepository;
-import com.jugger.userservice.dto.UserDto;
-import com.jugger.userservice.mapper.UserMapper;
-// import com.jugger.userservice.model.UserProfile;
+import com.jugger.userservice.dto.CreateUserProfileRequest;
+import com.jugger.userservice.dto.UserProfileResponse;
 
 @Service
 public class UserProfileService {
@@ -16,38 +17,39 @@ public class UserProfileService {
     public UserProfileService(ProfileRepository repo) {
         this.repo = repo;
     }
+     public UserProfileResponse createUserProfile(CreateUserProfileRequest request) {
+        UserProfile profile = new UserProfile();
+        profile.setUserId(request.getUserId());
+        profile.setUsername(request.getUsername());
+        profile.setEmail(request.getEmail());
+        repo.save(profile);
 
-   public UserDto getUserById(Long id) {
-        return repo.findById(id)
-                .map(UserMapper::toDto)
-                .orElse(null);
-    }   
-
-    public UserDto getUserByUsername(String username) {
-        return repo.findByUserame(username)
-                .map(UserMapper::toDto)
-                .orElse(null);
+        return toResponse(profile);
     }
-    
-    public boolean createProfile(Long userId, String username, String email) {
-        try {
-            // Check if profile already exists
-            if (repo.findById(userId).isPresent()) {
-                return false; // Profile already exists
-            }
-            
-            UserProfile profile = new UserProfile();
-            profile.setUserId(userId);
-            profile.setUserame(username); // Note: using 'userame' due to typo in entity
-            profile.setEmail(email);
-            // Set default values
-            profile.setPhone("");
-            profile.setAddress("");
-            
+
+    public UserProfileResponse getUserProfile(Long userId) {
+        Optional<UserProfile> profile = repo.findByUserId(userId);
+        return profile.map(this::toResponse).orElse(null);
+    } 
+
+    public UserProfileResponse updateUserProfile(Long userId, UserProfile updatedProfile) {
+        return repo.findByUserId(userId).map(profile -> {
+            profile.setUsername(updatedProfile.getUsername());
+            profile.setEmail(updatedProfile.getEmail());
+            profile.setPhone(updatedProfile.getPhone());
+            profile.setAddress(updatedProfile.getAddress());
             repo.save(profile);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+            return toResponse(profile);
+        }).orElse(null);
+    }
+      private UserProfileResponse toResponse(UserProfile profile) {
+        UserProfileResponse response = new UserProfileResponse();
+        response.setId(profile.getId());
+        response.setUserId(profile.getUserId());
+        response.setUsername(profile.getUsername());
+        response.setEmail(profile.getEmail());
+        response.setPhone(profile.getPhone());
+        response.setAddress(profile.getAddress());
+        return response;
     }
 }

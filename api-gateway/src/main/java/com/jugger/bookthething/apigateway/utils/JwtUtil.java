@@ -18,41 +18,36 @@ public class JwtUtil {
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
     }
-
-    public Claims parse(String token) {
+    // Parse and validate JWT
+    private Claims parseClaims(String token) {
         return Jwts.parser()
-                .decryptWith(getSigningKey())
                 .verifyWith(getSigningKey())
                 .build()
-                .parseSignedClaims(token)  // standard for HS256
+                .parseSignedClaims(token)
                 .getPayload();
     }
-      // Extract roles (if present)
-    public Object extractRoles(String token) {
-        Claims claims = parse(token);
-        return claims.get("roles");
-    }
-
-
-    public boolean validateToken(String token) {
+     public boolean validateToken(String token) {
         try {
-            parse(token);
-            return true;
+            Claims claims = parseClaims(token);
+            return !isTokenExpired(claims);
         } catch (Exception e) {
             System.out.println("JWT Validation failed: " + e.getMessage());
             return false;
         }
     }
-     // Check if expired
     private boolean isTokenExpired(Claims claims) {
-        return claims.getExpiration().before(new Date());
+        return claims.getExpiration() != null && claims.getExpiration().before(new Date());
     }
 
     public String getUsername(String token) {
-        return parse(token).getSubject();
+        return parseClaims(token).getSubject();
     }
-    
+
     public Long getUserId(String token) {
-        return parse(token).get("userId", Long.class);
+        return parseClaims(token).get("userId", Long.class);
     }
+
+    public Object getRoles(String token) {
+        return parseClaims(token).get("roles");
+    }  
 }
