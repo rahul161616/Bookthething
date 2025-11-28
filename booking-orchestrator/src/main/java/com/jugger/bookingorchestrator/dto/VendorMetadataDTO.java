@@ -6,6 +6,7 @@ import lombok.Data;
 public class VendorMetadataDTO {
     private Long id;
     private Long vendorId;
+    private Long bookingTypeId;
     private String serviceName;
     private String location;
     private Double price;

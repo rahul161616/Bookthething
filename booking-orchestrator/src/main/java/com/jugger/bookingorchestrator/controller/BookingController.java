@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/bookings")
 public class BookingController {
     
-      private final BookingOrchestratorService service;
+    private final BookingOrchestratorService service;
 
     public BookingController(BookingOrchestratorService service) {
         this.service = service;
@@ -21,6 +21,11 @@ public class BookingController {
                                                          @RequestHeader("X-User-Id") Long userId) {
         request.setUserId(userId); // JWT validated by Gateway
         return ResponseEntity.ok(service.createBooking(request));
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("Booking Orchestrator is running");
     }
     
 }

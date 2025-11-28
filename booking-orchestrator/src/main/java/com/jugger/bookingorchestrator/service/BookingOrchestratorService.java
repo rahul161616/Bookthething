@@ -6,67 +6,89 @@ import com.jugger.bookingorchestrator.client.EventBookingClient;
 import com.jugger.bookingorchestrator.client.FutsalBookingClient;
 import com.jugger.bookingorchestrator.client.RoomBookingClient;
 import com.jugger.bookingorchestrator.client.UserServiceClient;
+import com.jugger.bookingorchestrator.client.MetaDataClient;
 import com.jugger.bookingorchestrator.dto.BookingRequest;
 import com.jugger.bookingorchestrator.dto.BookingResponse;
+import com.jugger.bookingorchestrator.dto.UserProfileResponse;
 import com.jugger.bookingorchestrator.dto.VendorMetadataDTO;
+import com.jugger.bookingorchestrator.util.MetadataValidator;
 
 @Service
 public class BookingOrchestratorService {
 
     private final UserServiceClient userServiceClient;
+    private final MetaDataClient metaDataClient;
+    private final FutsalBookingClient futsalBookingClient;
     private final RoomBookingClient roomBookingClient;
     private final EventBookingClient eventBookingClient;
-    private final FutsalBookingClient futsalBookingClient;
 
-    public BookingOrchestratorService(UserServiceClient userServiceClient,
-                                      RoomBookingClient roomBookingClient,
-                                      EventBookingClient eventBookingClient,
-                                      FutsalBookingClient futsalBookingClient) {
+    public BookingOrchestratorService(UserServiceClient userServiceClient, 
+                                    MetaDataClient metaDataClient,
+                                    FutsalBookingClient futsalBookingClient,
+                                    RoomBookingClient roomBookingClient,
+                                    EventBookingClient eventBookingClient) {
         this.userServiceClient = userServiceClient;
+        this.metaDataClient = metaDataClient;
+        this.futsalBookingClient = futsalBookingClient;
         this.roomBookingClient = roomBookingClient;
         this.eventBookingClient = eventBookingClient;
-        this.futsalBookingClient = futsalBookingClient;
     }
 
     public BookingResponse createBooking(BookingRequest request) {
-        // Step 1: Validate user exists
-        if (userServiceClient.getUserProfile(request.getUserId()) == null) {
-            BookingResponse response = new BookingResponse();
+
+        BookingResponse response = new BookingResponse();
+
+        // 1) Validate user exists
+        UserProfileResponse user = userServiceClient.getUserProfile(request.getUserId());
+        if (user == null) {
             response.setStatus("REJECTED");
             response.setMessage("User not found");
             return response;
         }
 
-        // Step 2: Get vendor metadata
-        VendorMetadataDTO metadata = userServiceClient.getVendorMetadata(request.getVendorId(), request.getBookingType());
+        // 2) retrieve metadata (bookingTypeId MUST be set in request)
+        VendorMetadataDTO metadata = metaDataClient.getVendorMetadata(request.getVendorId(), request.getBookingTypeId());
         if (metadata == null) {
-            BookingResponse response = new BookingResponse();
             response.setStatus("REJECTED");
-            response.setMessage("Vendor or service not found");
+            response.setMessage("Vendor metadata not found for vendorId/bookingTypeId");
             return response;
         }
 
-        // Step 3: Forward booking to correct service
-        BookingResponse response;
-        switch (request.getBookingType().toLowerCase()) {
+        // 3) Price check
+        if (!MetadataValidator.isPriceAcceptable(request.getPrice(), metadata.getPrice())) {
+            response.setStatus("REJECTED");
+            response.setMessage("Price mismatch: requested price not within allowed tolerance");
+            return response;
+        }
+
+        // 4) Availability check
+        if (!MetadataValidator.isWithinAvailability(request.getDateTime(), metadata.getAvailabilityWindow())) {
+            response.setStatus("REJECTED");
+            response.setMessage("Requested date/time outside vendor availability");
+            return response;
+        }
+
+        // 5) Forward to specific service
+        BookingResponse downstreamResp;
+        String type = request.getBookingType().toLowerCase();
+        
+        switch (type) {
             case "room":
-                response = roomBookingClient.createBooking(request);
+                downstreamResp = roomBookingClient.createBooking(request);
                 break;
             case "event":
-                response = eventBookingClient.createBooking(request);
+                downstreamResp = eventBookingClient.createBooking(request);
                 break;
-            // Add more cases like FoodBooking later
             case "futsal":
-                response = futsalBookingClient.createBooking(request);
+                downstreamResp = futsalBookingClient.createBooking(request);
                 break;
             default:
-                response = new BookingResponse();
                 response.setStatus("REJECTED");
-                response.setMessage("Unknown booking type");
-                break;
+                response.setMessage("Unknown booking type: " + request.getBookingType());
+                return response;
         }
-        
-        // Optional: save audit log, trigger notifications
-        return response;
+
+        // Return the downstream response
+        return downstreamResp;
     }
 }

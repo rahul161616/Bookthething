@@ -21,22 +21,41 @@ public class AuthService {
     private final ProfileService profileService;
       
     //REGISTER METHODS
-    public AuthResponse register(String username, String password) {
+    public AuthResponse register(String username, String password, String email, String roleStr) {
         if (repo.findByUsername(username) != null)
             return AuthResponse.fail("Username already exists");
 
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRole(com.jugger.authservice.model.Role.USER);
+        
+        // Set role based on request, default to USER
+        com.jugger.authservice.model.Role role = com.jugger.authservice.model.Role.USER;
+        System.out.println(">>> Register called with role: " + roleStr);
+        if (roleStr != null && !roleStr.trim().isEmpty()) {
+            try {
+                role = com.jugger.authservice.model.Role.valueOf(roleStr.toUpperCase());
+                System.out.println(">>> Role set to: " + role);
+            } catch (IllegalArgumentException e) {
+                System.out.println(">>> Invalid role provided: " + roleStr + ", defaulting to USER");
+                // Invalid role, stick with USER
+            }
+        }
+        user.setRole(role);
         repo.save(user);
         
         // Create user profile automatically
          // Create user profile
-        profileService.createUserProfile(user.getId(), username, username + "@example.com");
+        String emailToUse = email != null ? email : username + "@example.com";
+        profileService.createUserProfile(user.getId(), username, emailToUse);
         
         String accessToken = jwtUtil.generateToken(user);
         return AuthResponse.success(accessToken, null);
+    }
+    
+    // Keep backward compatibility
+    public AuthResponse register(String username, String password) {
+        return register(username, password, null, null);
     }
     
     //LOGIN METHODS - return access token

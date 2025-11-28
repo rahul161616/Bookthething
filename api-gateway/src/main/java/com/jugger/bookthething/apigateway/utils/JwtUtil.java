@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.Date;
 
 @Component
@@ -50,4 +51,26 @@ public class JwtUtil {
     public Object getRoles(String token) {
         return parseClaims(token).get("roles");
     }  
+    
+    // in com.jugger.bookthething.apigateway.utils.JwtUtil
+    public String getRoleString(String token) {
+    Claims claims = parseClaims(token);
+    // First try "role" (singular) as used by auth service
+    Object role = claims.get("role");
+    if (role != null) {
+        return role.toString();
+    }
+    // Fallback to "roles" (plural) for compatibility
+    Object roles = claims.get("roles");
+    if (roles == null) return null;
+    // if roles is a single string
+    if (roles instanceof String) return (String) roles;
+    // if roles is collection (List<String>) -> join first
+    if (roles instanceof java.util.Collection) {
+        Collection<?> c = (Collection<?>) roles;
+        return c.stream().findFirst().map(Object::toString).orElse(null);
+       }
+    return roles.toString();
+    }
+
 }

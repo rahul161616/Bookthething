@@ -60,6 +60,9 @@ public class GlobalJwtFilter implements GlobalFilter {
         System.out.println(">>> Extracted username: " + username);
         System.out.println(">>> Extracted userId: " + userId);
         
+        //Role
+        String role=jwtUtil.getRoleString(token);
+        System.out.println(">>> Extracted role: "+role);
         // 🔥 Mutate request and inject both headers
         ServerWebExchange mutatedExchange = exchange.mutate()
         // .request(r -> r.headers(h -> {
@@ -82,6 +85,10 @@ public class GlobalJwtFilter implements GlobalFilter {
                 h.set("X-User-Id",userUuid.toString());
                 System.out.println(">>> Set X-User-Id: "+userUuid.toString()+" (from userId: "+userId+")");
 
+            }
+            if(role!=null){
+                h.set("X-User-Role",role);
+                System.out.println(">>> Set X-User-Role: "+role);
             }
         }))
         .build();

@@ -27,7 +27,7 @@ public class AuthController {
     }
       @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody AuthRequest req) {
-        AuthResponse response = authService.register(req.getUsername(), req.getPassword());
+        AuthResponse response = authService.register(req.getUsername(), req.getPassword(), req.getEmail(), req.getRole());
         if (!response.isSuccess()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         return ResponseEntity.ok(response);
     }

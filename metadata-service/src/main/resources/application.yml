@@ -1,0 +1,12 @@
+server:
+  port: 8084
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bookingdb
+    username: jugger
+    password: passw0rd
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
