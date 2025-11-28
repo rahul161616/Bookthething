@@ -4,7 +4,8 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.jugger.futsalservice.dto.FutsalBookingRequest;
+import com.jugger.futsalservice.dto.BookingRequestFromOrchestrator;
+// import com.jugger.futsalservice.dto.FutsalBookingRequest;
 import com.jugger.futsalservice.dto.FutsalBookingResponse;
 import com.jugger.futsalservice.model.BookingStatus;
 import com.jugger.futsalservice.model.FutsalBooking;
@@ -19,41 +20,59 @@ public class FutsalBookingService {
         this.repository = repository;
     }
 
-    public FutsalBookingResponse createBooking(UUID userId, FutsalBookingRequest request) {
+    public FutsalBookingResponse createFromOrchestrator(
+            String xUserIdHeader,
+            BookingRequestFromOrchestrator req
+    ) {
 
-        // Step 1: Check availability
-        List<FutsalBooking> overlapping = repository
-                    .findByVendorIdAndEndTimeAfterAndStartTimeBefore(
-                        request.getVendorId(), 
-                        request.getStartTime(), 
-                        request.getEndTime());
+        // vendorId from orchestrator is Long → convert to deterministic UUID
+        UUID vendorUUID = new UUID(0L, req.getVendorId());
+
+        // ---------------------------
+        // Check availability
+        // ---------------------------
+        List<FutsalBooking> overlapping =
+                repository.findByVendorIdAndEndTimeAfterAndStartTimeBefore(
+                        vendorUUID,
+                        req.getStartTime(),
+                        req.getEndTime()
+                );
 
         if (!overlapping.isEmpty()) {
-            FutsalBookingResponse response = new FutsalBookingResponse();
-            response.setMessage("Time slot not available");
-            response.setStatus("FAILED");
-            return response;
+            FutsalBookingResponse fail = new FutsalBookingResponse();
+            fail.setStatus("FAILED");
+            fail.setMessage("Time slot not available");
+            return fail;
         }
 
-        // Step 2: Save booking
+        // ---------------------------
+        // Create booking
+        // ---------------------------
         FutsalBooking booking = new FutsalBooking();
-        booking.setUserId(userId);
-        booking.setVendorId(request.getVendorId());
-        booking.setStartTime(request.getStartTime());
-        booking.setEndTime(request.getEndTime());
-        booking.setParticipants(request.getParticipants());
-        booking.setPrice(request.getPrice());
+        booking.setUserId(req.getUserId());            // already UUID from orchestrator
+        booking.setVendorId(vendorUUID);
+        booking.setStartTime(req.getStartTime());
+        booking.setEndTime(req.getEndTime());
+        booking.setParticipants(req.getParticipants() != null ? req.getParticipants() : 10);
+        booking.setPrice(req.getPrice());
         booking.setStatus(BookingStatus.PENDING);
 
         repository.save(booking);
-        // Return response
+
+        // ---------------------------
+        // Response
+        // ---------------------------
         FutsalBookingResponse response = new FutsalBookingResponse();
         response.setBookingId(booking.getId());
         response.setStatus(booking.getStatus().name());
         response.setMessage("Booking created successfully");
+
         return response;
     }
-     // Optional: Approve/Reject booking by vendor
+
+    // ---------------------------
+    // Vendor approve / reject
+    // ---------------------------
     public FutsalBookingResponse updateBookingStatus(UUID bookingId, BookingStatus status) {
         FutsalBooking booking = repository.findById(bookingId).orElse(null);
         if (booking == null) return null;
@@ -65,6 +84,7 @@ public class FutsalBookingService {
         res.setBookingId(booking.getId());
         res.setStatus(booking.getStatus().name());
         res.setMessage("Booking status updated");
+
         return res;
     }
 }

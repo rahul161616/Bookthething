@@ -1,12 +1,16 @@
 package com.jugger.futsalservice.model;
 
-import java.time.LocalDateTime;
+// import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
+
+import org.hibernate.annotations.UuidGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
+// import jakarta.persistence.GeneratedValue;
 // import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -17,23 +21,24 @@ import lombok.Data;
 @Table(name = "futsal_bookings")
 public class FutsalBooking {
 
-     @Id
-    @GeneratedValue
+    @Id
+    @UuidGenerator
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false, columnDefinition = "uuid")
     private UUID userId;
 
-    @Column(nullable = false)
+    @Column(name = "vendor_id", nullable = false, columnDefinition = "uuid")
     private UUID vendorId;
 
-    @Column(nullable = false)
-    private LocalDateTime startTime;
+    @Column(name = "start_time", nullable = false)
+    private OffsetDateTime startTime;
 
-    @Column(nullable = false)
-    private LocalDateTime endTime;
+     @Column(name = "end_time", nullable = false)
+    private OffsetDateTime endTime;
 
-    @Column(nullable = false)
+   @Column(nullable = false)
     private int participants;
 
     @Column(nullable = false)
@@ -42,4 +47,7 @@ public class FutsalBooking {
 
     @Column(nullable = false)
     private double price;
+    
+     @Column(name = "created_at", nullable = false)
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 }
