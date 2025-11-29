@@ -107,19 +107,62 @@ setup_database() {
 build_services() {
     print_info "Building all services..."
     
+    # Build Auth Service
+    print_info "Building Auth Service..."
+    cd auth-service
+    ./mvnw clean install -DskipTests
+    cd ..
+    print_success "Auth Service built successfully"
+    
+    # Build User Service
+    print_info "Building User Service..."
+    cd userservice
+    ./mvnw clean install -DskipTests
+    cd ..
+    print_success "User Service built successfully"
+    
+    # Build Metadata Service
+    print_info "Building Metadata Service..."
+    cd metadata-service
+    ./mvnw clean install -DskipTests
+    cd ..
+    print_success "Metadata Service built successfully"
+    
+    # Build Vendor Service
+    print_info "Building Vendor Service..."
+    if [ -d "vendor-service" ] && [ -f "vendor-service/pom.xml" ]; then
+        cd vendor-service
+        if [ -f "./mvnw" ]; then
+            ./mvnw clean install -DskipTests
+        else
+            mvn clean install -DskipTests
+        fi
+        cd ..
+        print_success "Vendor Service built successfully"
+    else
+        print_warning "Vendor Service not found or incomplete, skipping..."
+    fi
+    
+    # Build Futsal Service
+    print_info "Building Futsal Service..."
+    cd futsal-service
+    ./mvnw clean install -DskipTests
+    cd ..
+    print_success "Futsal Service built successfully"
+    
+    # Build Booking Orchestrator
+    print_info "Building Booking Orchestrator..."
+    cd booking-orchestrator
+    ./mvnw clean install -DskipTests
+    cd ..
+    print_success "Booking Orchestrator built successfully"
+    
     # Build API Gateway
     print_info "Building API Gateway..."
     cd api-gateway
     ./mvnw clean install -DskipTests
     cd ..
     print_success "API Gateway built successfully"
-    
-    # Build Booking Service
-    print_info "Building Booking Service..."
-    cd booking-service
-    ./mvnw clean install -DskipTests
-    cd ..
-    print_success "Booking Service built successfully"
     
     print_success "All services built successfully!"
 }
@@ -128,11 +171,31 @@ build_services() {
 run_tests() {
     print_info "Running tests..."
     
-    cd api-gateway
+    cd auth-service
     ./mvnw test
     cd ..
     
-    cd booking-service
+    cd userservice
+    ./mvnw test
+    cd ..
+    
+    cd metadata-service
+    ./mvnw test
+    cd ..
+    
+    cd vendor-service
+    ./mvnw test
+    cd ..
+    
+    cd futsal-service
+    ./mvnw test
+    cd ..
+    
+    cd booking-orchestrator
+    ./mvnw test
+    cd ..
+    
+    cd api-gateway
     ./mvnw test
     cd ..
     
@@ -145,41 +208,93 @@ create_start_script() {
     cat > start-services.sh << 'EOF'
 #!/bin/bash
 
-# Start all services
+# Start all services in correct order
 
-echo "🚀 Starting Bookthething Services..."
+echo "🚀 Starting Bookthething Microservices..."
 
-# Start API Gateway
+# Start database first (if using Docker)
+echo "Starting PostgreSQL database..."
+docker-compose up -d postgres
+sleep 10
+
+# Start Auth Service (Port 8081)
+echo "Starting Auth Service on port 8081..."
+cd auth-service
+nohup ./mvnw spring-boot:run > ../auth-service.log 2>&1 &
+AUTH_PID=$!
+cd ..
+echo $AUTH_PID > auth-service.pid
+sleep 15
+
+# Start User Service (Port 8084)
+echo "Starting User Service on port 8084..."
+cd userservice
+nohup ./mvnw spring-boot:run > ../userservice.log 2>&1 &
+USER_PID=$!
+cd ..
+echo $USER_PID > userservice.pid
+sleep 15
+
+# Start Metadata Service (Port 8086)
+echo "Starting Metadata Service on port 8086..."
+cd metadata-service
+nohup ./mvnw spring-boot:run > ../metadata-service.log 2>&1 &
+METADATA_PID=$!
+cd ..
+echo $METADATA_PID > metadata-service.pid
+sleep 15
+
+# Start Vendor Service (Port 8083)
+echo "Starting Vendor Service on port 8083..."
+cd vendor-service
+nohup ./mvnw spring-boot:run > ../vendor-service.log 2>&1 &
+VENDOR_PID=$!
+cd ..
+echo $VENDOR_PID > vendor-service.pid
+sleep 15
+
+# Start Futsal Service (Port 8087)
+echo "Starting Futsal Service on port 8087..."
+cd futsal-service
+nohup ./mvnw spring-boot:run > ../futsal-service.log 2>&1 &
+FUTSAL_PID=$!
+cd ..
+echo $FUTSAL_PID > futsal-service.pid
+sleep 15
+
+# Start Booking Orchestrator (Port 8085)
+echo "Starting Booking Orchestrator on port 8085..."
+cd booking-orchestrator
+nohup ./mvnw spring-boot:run > ../booking-orchestrator.log 2>&1 &
+ORCHESTRATOR_PID=$!
+cd ..
+echo $ORCHESTRATOR_PID > orchestrator.pid
+sleep 15
+
+# Start API Gateway last (Port 8080)
 echo "Starting API Gateway on port 8080..."
 cd api-gateway
-./mvnw spring-boot:run &
-API_GATEWAY_PID=$!
+nohup ./mvnw spring-boot:run > ../api-gateway.log 2>&1 &
+GATEWAY_PID=$!
 cd ..
+echo $GATEWAY_PID > api-gateway.pid
+sleep 10
 
-# Wait a moment
-sleep 5
-
-# Start Booking Service
-echo "Starting Booking Service on port 8082..."
-cd booking-service
-./mvnw spring-boot:run &
-BOOKING_SERVICE_PID=$!
-cd ..
-
-echo "Services started!"
-echo "API Gateway PID: $API_GATEWAY_PID"
-echo "Booking Service PID: $BOOKING_SERVICE_PID"
-
+echo "✅ All services started!"
 echo ""
 echo "Service URLs:"
 echo "- API Gateway: http://localhost:8080"
-echo "- Booking Service: http://localhost:8082"
+echo "- Auth Service: http://localhost:8081"
+echo "- Vendor Service: http://localhost:8083"
+echo "- User Service: http://localhost:8084"
+echo "- Booking Orchestrator: http://localhost:8085"
+echo "- Metadata Service: http://localhost:8086"
+echo "- Futsal Service: http://localhost:8087"
+echo ""
+echo "Service PIDs saved to .pid files"
+echo "Logs available in respective .log files"
 echo ""
 echo "To stop services, run: ./stop-services.sh"
-
-# Save PIDs for stop script
-echo "$API_GATEWAY_PID" > .api-gateway.pid
-echo "$BOOKING_SERVICE_PID" > .booking-service.pid
 EOF
 
     chmod +x start-services.sh
@@ -193,23 +308,51 @@ create_stop_script() {
 
 # Stop all services
 
-echo "🛑 Stopping Bookthething Services..."
+echo "🛑 Stopping Bookthething Microservices..."
 
-# Stop API Gateway
-if [[ -f .api-gateway.pid ]]; then
-    API_GATEWAY_PID=$(cat .api-gateway.pid)
-    kill $API_GATEWAY_PID 2>/dev/null || echo "API Gateway already stopped"
-    rm .api-gateway.pid
+# Function to stop service by pid file
+stop_service() {
+    local service_name=$1
+    local pid_file=$2
+    
+    if [[ -f $pid_file ]]; then
+        PID=$(cat $pid_file)
+        if kill $PID 2>/dev/null; then
+            echo "✅ $service_name stopped (PID: $PID)"
+        else
+            echo "⚠️  $service_name was not running or already stopped"
+        fi
+        rm $pid_file
+    else
+        echo "⚠️  No PID file found for $service_name"
+    fi
+}
+
+# Stop services in reverse order
+stop_service "API Gateway" "api-gateway.pid"
+stop_service "Booking Orchestrator" "orchestrator.pid" 
+stop_service "Futsal Service" "futsal-service.pid"
+stop_service "Vendor Service" "vendor-service.pid"
+stop_service "Metadata Service" "metadata-service.pid"
+stop_service "User Service" "userservice.pid"
+stop_service "Auth Service" "auth-service.pid"
+
+# Stop database
+echo "Stopping PostgreSQL database..."
+docker-compose down postgres 2>/dev/null || echo "Database already stopped"
+
+# Clean up any remaining processes
+pkill -f "spring-boot:run" 2>/dev/null || true
+
+echo "✅ All services stopped!"
+
+# Clean up log files if desired
+read -p "Do you want to clean up log files? (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    rm -f *.log
+    echo "✅ Log files cleaned up!"
 fi
-
-# Stop Booking Service
-if [[ -f .booking-service.pid ]]; then
-    BOOKING_SERVICE_PID=$(cat .booking-service.pid)
-    kill $BOOKING_SERVICE_PID 2>/dev/null || echo "Booking Service already stopped"
-    rm .booking-service.pid
-fi
-
-echo "Services stopped!"
 EOF
 
     chmod +x stop-services.sh
@@ -264,6 +407,13 @@ main() {
     echo "1. Update .env file with your configuration"
     echo "2. Run: ./start-services.sh to start all services"
     echo "3. Access API Gateway at: http://localhost:8080"
+    echo "4. Check service health at respective ports:"
+    echo "   - Auth Service: http://localhost:8081/actuator/health"
+    echo "   - Vendor Service: http://localhost:8083/actuator/health"
+    echo "   - User Service: http://localhost:8084/actuator/health"
+    echo "   - Booking Orchestrator: http://localhost:8085/actuator/health"
+    echo "   - Metadata Service: http://localhost:8086/actuator/health"
+    echo "   - Futsal Service: http://localhost:8087/actuator/health"
     echo ""
     echo "For Docker deployment:"
     echo "- Run: docker-compose up -d"
