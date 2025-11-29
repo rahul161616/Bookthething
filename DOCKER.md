@@ -1,11 +1,12 @@
 # Bookthething Microservices - Docker Deployment
 
 ## Overview
-This project consists of 5 microservices running in a coordinated Docker environment:
+This project consists of 6 microservices running in a coordinated Docker environment:
 
 - **API Gateway** (Port 8080) - Routes requests to appropriate services
 - **Auth Service** (Port 8081) - User authentication and JWT management  
 - **User Service** (Port 8083) - User profile management
+- **Metadata Service** (Port 8084) - Vendor and location management
 - **Booking Orchestrator** (Port 8086) - Coordinates booking workflows
 - **Futsal Service** (Port 8087) - Manages futsal court bookings
 - **PostgreSQL Database** (Port 5432) - Shared data persistence
@@ -13,7 +14,8 @@ This project consists of 5 microservices running in a coordinated Docker environ
 ## Prerequisites
 
 1. **Docker & Docker Compose** installed
-2. **User permissions** for Docker:
+2. **Minimum 4GB RAM** available for containers
+3. **User permissions** for Docker:
    ```bash
    sudo usermod -aG docker $USER
    # Log out and back in to apply changes
@@ -29,16 +31,16 @@ This project consists of 5 microservices running in a coordinated Docker environ
 ### Option 2: Manual Deployment
 ```bash
 # Clean up existing containers
-docker compose down --volumes
+docker-compose down --volumes
 
 # Build and start all services
-docker compose up --build -d
+docker-compose up --build -d
 
 # Check service status  
-docker compose ps
+docker-compose ps
 
 # View logs
-docker compose logs -f
+docker-compose logs -f
 ```
 
 ## Service Architecture
@@ -48,6 +50,21 @@ docker compose logs -f
 │ API Gateway │────│ Auth Service │    │User Service │
 │   :8080     │    │    :8081     │    │   :8083     │
 └─────────────┘    └──────────────┘    └─────────────┘
+       │                                      │
+       │            ┌──────────────┐          │
+       └────────────│  Metadata    │──────────┘
+                    │  Service     │
+                    │   :8084      │
+                    └──────────────┘
+       │
+┌─────────────┐    ┌──────────────┐
+│ Booking     │────│ Futsal       │
+│ Orchestrator│    │ Service      │
+│   :8086     │    │   :8087      │
+└─────────────┘    └──────────────┘
+       │                    │
+       └────────────────────┴─── PostgreSQL :5432
+```
        │                  │                    │
        │                  └────────────────────┼──────┐
        │                                       │      │

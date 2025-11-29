@@ -64,6 +64,29 @@ services:
       timeout: 10s
       retries: 3
 
+  # Metadata Service
+  metadata-service:
+    build: 
+      context: ./metadata-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bookingdb
+      - SPRING_DATASOURCE_USERNAME=jugger
+      - SPRING_DATASOURCE_PASSWORD=passw0rd
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bookthething-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Futsal Service
   futsal-service:
     build: 
@@ -101,16 +124,18 @@ services:
       - SPRING_DATASOURCE_PASSWORD=passw0rd
       - AUTH_SERVICE_URL=http://auth-service:8081
       - USER_SERVICE_URL=http://user-service:8083
+      - METADATA_SERVICE_URL=http://metadata-service:8084
       - FUTSAL_SERVICE_URL=http://futsal-service:8087
     depends_on:
       - postgres
       - auth-service
       - user-service
+      - metadata-service
       - futsal-service
     networks:
       - bookthething-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8086/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8086/api/v1/bookings/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -126,11 +151,13 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - AUTH_SERVICE_URL=http://auth-service:8081
       - USER_SERVICE_URL=http://user-service:8083
+      - METADATA_SERVICE_URL=http://metadata-service:8084
       - FUTSAL_SERVICE_URL=http://futsal-service:8087
       - BOOKING_ORCHESTRATOR_URL=http://booking-orchestrator:8086
     depends_on:
       - auth-service
       - user-service
+      - metadata-service
       - futsal-service
       - booking-orchestrator
     networks:
