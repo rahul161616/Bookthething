@@ -31,7 +31,13 @@ public class MetaDataClient {
     @Cacheable(value = "vendorMetadata", key = "#vendorId + '-' + #bookingTypeId", unless="#result==null")
     public VendorMetadataDTO getVendorMetadata(Long vendorId, Long bookingTypeId) {
         String url = metadataServiceBase + "/vendor/" + vendorId + "/metadata";
-        ResponseEntity<VendorMetadataDTO[]> resp = restTemplate.getForEntity(url, VendorMetadataDTO[].class);
+        
+        // Add required X-User-Id header for metadata service
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-User-Id", "1"); // System user for orchestrator
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        ResponseEntity<VendorMetadataDTO[]> resp = restTemplate.exchange(url, HttpMethod.GET, entity, VendorMetadataDTO[].class);
         VendorMetadataDTO[] arr = resp.getBody();
         if (arr == null) return null;
         for (VendorMetadataDTO m : arr) {
@@ -42,7 +48,14 @@ public class MetaDataClient {
 
     public List<VendorMetadataDTO> getByType(Long bookingTypeId) {
         String url = metadataServiceBase + "/metadata?bookingTypeId=" + bookingTypeId;
-        VendorMetadataDTO[] arr = restTemplate.getForObject(url, VendorMetadataDTO[].class);
+        
+        // Add required X-User-Id header for metadata service
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-User-Id", "1"); // System user for orchestrator
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        ResponseEntity<VendorMetadataDTO[]> resp = restTemplate.exchange(url, HttpMethod.GET, entity, VendorMetadataDTO[].class);
+        VendorMetadataDTO[] arr = resp.getBody();
         return arr == null ? Collections.emptyList() : Arrays.asList(arr);
     }
 }

@@ -2,8 +2,8 @@ package com.jugger.bookingorchestrator.util;
 
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 
 @Component
 public class MetadataValidator {
@@ -29,10 +29,22 @@ public class MetadataValidator {
         }
         
         try {
-            LocalDateTime requestedTime = LocalDateTime.parse(requestedDateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            // Simple validation - if availability window exists, assume it's valid
-            // In production, you'd parse the availability window and check ranges
-            return true;
+            // Parse the requested time
+            OffsetDateTime requestedTime = OffsetDateTime.parse(requestedDateTime);
+            LocalTime requestedLocalTime = requestedTime.toLocalTime();
+            
+            // Parse availability window (e.g., "06:00-23:00")
+            String[] timeParts = availabilityWindow.split("-");
+            if (timeParts.length != 2) {
+                return true; // Invalid format, assume always available
+            }
+            
+            LocalTime startTime = LocalTime.parse(timeParts[0].trim());
+            LocalTime endTime = LocalTime.parse(timeParts[1].trim());
+            
+            // Check if requested time is within availability window
+            return !requestedLocalTime.isBefore(startTime) && !requestedLocalTime.isAfter(endTime);
+            
         } catch (Exception e) {
             return false;
         }
