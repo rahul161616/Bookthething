@@ -12,7 +12,6 @@ import org.springframework.web.client.RestTemplate;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Component
 public class FutsalBookingClient {
@@ -30,7 +29,7 @@ public class FutsalBookingClient {
         
         // Create the payload for futsal service
         Map<String, Object> futsalRequest = new HashMap<>();
-        futsalRequest.put("userId", UUID.fromString("550e8400-e29b-41d4-a716-446655440" + String.format("%03d", request.getUserId())));
+        futsalRequest.put("userId", request.getUserId());
         futsalRequest.put("vendorId", request.getVendorId());
         futsalRequest.put("bookingType", request.getBookingType());
         futsalRequest.put("bookingTypeId", request.getBookingTypeId());
@@ -57,7 +56,7 @@ public class FutsalBookingClient {
             
             // Convert futsal response to orchestrator format
             BookingResponse response = new BookingResponse();
-            response.setBookingId(null); // Futsal returns UUID, orchestrator expects Long
+            response.setBookingId((Long) futsalResp.get("bookingId")); // Futsal returns Long
             response.setStatus((String) futsalResp.get("status"));
             response.setMessage((String) futsalResp.get("message"));
             
