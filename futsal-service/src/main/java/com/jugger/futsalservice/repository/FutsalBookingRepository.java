@@ -6,10 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 // import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
-public interface FutsalBookingRepository extends JpaRepository<FutsalBooking, UUID> {
+public interface FutsalBookingRepository extends JpaRepository<FutsalBooking, Long> {
 
     // Check if a vendor has availability for a time window
-    List<FutsalBooking> findByVendorIdAndEndTimeAfterAndStartTimeBefore(UUID vendorId, OffsetDateTime start, OffsetDateTime end);
+    List<FutsalBooking> findByVendorIdAndEndTimeAfterAndStartTimeBefore(Long vendorId, OffsetDateTime start, OffsetDateTime end);
 }

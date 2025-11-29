@@ -9,7 +9,7 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name="vendor_metadata")
+@Table(name="user_vendor_metadata")
 public class VendorMetadata {
 
     @Id

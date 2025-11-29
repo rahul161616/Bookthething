@@ -2,9 +2,9 @@ package com.jugger.futsalservice.model;
 
 // import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
-import org.hibernate.annotations.UuidGenerator;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,15 +22,14 @@ import lombok.Data;
 public class FutsalBooking {
 
     @Id
-    @UuidGenerator
-    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(name = "user_id", nullable = false, columnDefinition = "uuid")
-    private UUID userId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @Column(name = "vendor_id", nullable = false, columnDefinition = "uuid")
-    private UUID vendorId;
+    @Column(name = "vendor_id", nullable = false)
+    private Long vendorId;
 
     @Column(name = "start_time", nullable = false)
     private OffsetDateTime startTime;

@@ -6,8 +6,6 @@ import com.jugger.futsalservice.dto.FutsalBookingResponse;
 import com.jugger.futsalservice.model.BookingStatus;
 import com.jugger.futsalservice.service.FutsalBookingService;
 
-import java.util.UUID;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,7 +34,7 @@ public class FutsalBookingController {
     }
     @PostMapping("/{bookingId}/status")
     public ResponseEntity<FutsalBookingResponse> updateStatus(
-            @PathVariable("bookingId") UUID bookingId,
+            @PathVariable("bookingId") Long bookingId,
             @RequestParam("status") BookingStatus status) {
 
         FutsalBookingResponse res = service.updateBookingStatus(bookingId, status);

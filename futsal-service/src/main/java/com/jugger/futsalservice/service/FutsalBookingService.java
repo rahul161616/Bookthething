@@ -1,6 +1,5 @@
 package com.jugger.futsalservice.service;
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -25,15 +24,15 @@ public class FutsalBookingService {
             BookingRequestFromOrchestrator req
     ) {
 
-        // vendorId from orchestrator is Long → convert to deterministic UUID
-        UUID vendorUUID = new UUID(0L, req.getVendorId());
+        // vendorId from orchestrator is Long - use directly
+        Long vendorId = req.getVendorId();
 
         // ---------------------------
         // Check availability
         // ---------------------------
         List<FutsalBooking> overlapping =
                 repository.findByVendorIdAndEndTimeAfterAndStartTimeBefore(
-                        vendorUUID,
+                        vendorId,
                         req.getStartTime(),
                         req.getEndTime()
                 );
@@ -49,8 +48,8 @@ public class FutsalBookingService {
         // Create booking
         // ---------------------------
         FutsalBooking booking = new FutsalBooking();
-        booking.setUserId(req.getUserId());            // already UUID from orchestrator
-        booking.setVendorId(vendorUUID);
+        booking.setUserId(req.getUserId());            // Long from orchestrator
+        booking.setVendorId(vendorId);
         booking.setStartTime(req.getStartTime());
         booking.setEndTime(req.getEndTime());
         booking.setParticipants(req.getParticipants() != null ? req.getParticipants() : 10);
@@ -73,7 +72,7 @@ public class FutsalBookingService {
     // ---------------------------
     // Vendor approve / reject
     // ---------------------------
-    public FutsalBookingResponse updateBookingStatus(UUID bookingId, BookingStatus status) {
+    public FutsalBookingResponse updateBookingStatus(Long bookingId, BookingStatus status) {
         FutsalBooking booking = repository.findById(bookingId).orElse(null);
         if (booking == null) return null;
 
