@@ -1,19 +1,24 @@
 # 🏆 Futsal Booking Complete Workflow Test Results
 
-**Test Date:** November 28, 2025  
+**Test Date:** November 30, 2025  
 **Test Environment:** Local Development (All services on localhost)  
 **Database:** PostgreSQL (bookingdb)
+**Status:** ✅ COMPLETE SUCCESS - ALL STEPS VERIFIED
 
 ## 🎯 Workflow Executed:
 
-| Step | Action | Result | User/Entity |
-|------|--------|--------|-------------|
-| 1. Admin Setup | Created admin `futsal_admin` (ID: 21), added "Futsal" booking type (ID: 1) | ✅ | Admin |
-| 2. Vendor Registration | Created vendor `arena_vendor` (ID: 22), submitted application | ✅ | Vendor |
-| 3. Admin Approval | Admin approved vendor application (ID: 1) | ✅ | Admin |
-| 4. Vendor Metadata | Added "Arena Futsal" - Downtown Sports Complex, $75/hour | ✅ | Vendor |
-| 5. User Booking | User `football_fan` (ID: 23) booked 5-6 PM slot (Nov 29, 2025) | ✅ | User |
-| 6. Vendor Accepts | Vendor approved booking → Status: APPROVED | ✅ | Vendor |
+| Step | Action | Result | User/Entity | Details |
+|------|--------|--------|-------------|----------|
+| 1. User Registration | Created user `booker_user2` (ID: 37) | ✅ | User | JWT token generated |
+| 2. Vendor Registration | Created vendor `vendor_flow_test` (ID: 32) | ✅ | Vendor | JWT token generated |
+| 3. Vendor Application | Submitted "Elite Futsal Arena" application (ID: 2) | ✅ | Vendor | Status: PENDING |
+| 4. Admin Registration | Created admin `admin_flow2` | ✅ | Admin | JWT token generated |
+| 5. Admin Approval | Admin approved vendor application (ID: 2) | ✅ | Admin | Status: PENDING → APPROVED |
+| 6. Booking Type Setup | Added "Futsal Court" booking type (ID: 2) | ✅ | Admin | Available for vendors |
+| 7. Vendor Service Setup | Enhanced metadata with scheduling (Service ID: 6) | ✅ | Vendor | $45/90min, full scheduling |
+| 8. Availability Check | Real vendor scheduling for Dec 2, 2025 | ✅ | User | 11 slots from vendor config |
+| 9. User Booking | Booked 09:00-10:30 slot (Booking ID: 1) | ✅ | User | Status: PENDING |
+| 10. Vendor Approval | Approved booking → Status: APPROVED | ✅ | Admin/Vendor | Final confirmation |
 
 ---
 
@@ -327,13 +332,60 @@ id                                   | user_id | vendor_id | start_time         
 
 **🎉 ALL TESTS PASSED - FUTSAL BOOKING SYSTEM FULLY FUNCTIONAL! 🎉**
 
+## 🆕 NEW: Enhanced Vendor Availability System
+
+### **Real-Time Vendor Scheduling Features:**
+
+**✅ Daily Schedule Configuration**
+- Monday-Friday: 06:00-23:00
+- Saturday: 08:00-22:00  
+- Sunday: 10:00-20:00
+- Configurable per vendor
+
+**✅ Blocked Dates**
+- Christmas Day (2025-12-25): No availability
+- New Year's Day (2025-01-01): No availability
+- Custom blocked dates per vendor
+
+**✅ Special Date Hours**
+- New Year's Eve (2025-12-31): Limited hours 06:00-18:00
+- Custom special schedules per vendor
+
+**✅ Smart Slot Generation**
+- 90-minute slot duration (configurable)
+- Auto-generated based on daily schedule
+- Real-time availability calculation
+
+**✅ Test Results:**
+```bash
+# Regular weekday (Monday)
+GET /api/v1/futsal/availability?vendorId=2&date=2025-12-01
+→ 11 slots: ["06:00", "07:30", "09:00", ..., "21:00"]
+
+# Sunday (reduced hours)
+GET /api/v1/futsal/availability?vendorId=2&date=2025-11-30  
+→ 6 slots: ["10:00", "11:30", "13:00", "14:30", "16:00", "17:30"]
+
+# Blocked date (Christmas)
+GET /api/v1/futsal/availability?vendorId=2&date=2025-12-25
+→ 0 slots: []
+
+# Special date (New Year's Eve)
+GET /api/v1/futsal/availability?vendorId=2&date=2025-12-31
+→ 8 slots: ["06:00", "07:30", ..., "16:30"]
+
+# Vendor without config
+GET /api/v1/futsal/availability?vendorId=999&date=2025-12-01
+→ Default slots: ["09:00", "11:00", "14:00", "16:00", "18:00"]
+```
+
 ## ⚡ Service Architecture
 
 - **API Gateway:** 8080 (Entry point)
 - **Auth Service:** 8081 (JWT authentication)  
-- **User Service:** 8083 (User profiles)
+- **User Service:** 8083 (User profiles + Enhanced vendor metadata)
 - **Metadata Service:** 8084 (Booking types, vendor management)
-- **Futsal Service:** 8087 (Futsal-specific bookings)
-- **Database:** PostgreSQL (bookingdb)
+- **Futsal Service:** 8087 (Futsal bookings + Real availability)
+- **Database:** PostgreSQL (bookingdb with dual vendor tables)
 
 All services running successfully with proper inter-service communication via JWT tokens and headers.

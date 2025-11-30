@@ -12,4 +12,11 @@ public class VendorMetadataResponse {
     private String extraInfo;
     private String images;
     private String availabilityWindow;
+    
+    // Enhanced availability scheduling
+    private String dailySchedule;
+    private String blockedDates;
+    private String specialDates;
+    private Integer slotDurationMinutes;
+    private Boolean autoApproveBookings;
 }

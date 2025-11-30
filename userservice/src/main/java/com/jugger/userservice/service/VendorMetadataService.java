@@ -26,6 +26,39 @@ public class VendorMetadataService {
         metadata.setExtraInfo(request.getExtraInfo());
         metadata.setImages(request.getImages());
         metadata.setAvailabilityWindow(request.getAvailabilityWindow());
+        // Set new availability fields
+        metadata.setDailySchedule(request.getDailySchedule());
+        metadata.setBlockedDates(request.getBlockedDates());
+        metadata.setSpecialDates(request.getSpecialDates());
+        metadata.setSlotDurationMinutes(request.getSlotDurationMinutes());
+        metadata.setAutoApproveBookings(request.getAutoApproveBookings());
+        repo.save(metadata);
+        return toResponse(metadata);
+    }
+
+    public VendorMetadataResponse updateAvailabilitySchedule(VendorMetadataRequest request) {
+        // Find existing metadata for this vendor
+        List<VendorMetadata> existing = repo.findByVendorId(request.getVendorId());
+        VendorMetadata metadata;
+        
+        if (existing.isEmpty()) {
+            // Create new if doesn't exist
+            metadata = new VendorMetadata();
+            metadata.setVendorId(request.getVendorId());
+            metadata.setServiceName(request.getServiceName() != null ? request.getServiceName() : "Service");
+        } else {
+            // Update first existing record
+            metadata = existing.get(0);
+        }
+        
+        // Update availability fields
+        if (request.getDailySchedule() != null) metadata.setDailySchedule(request.getDailySchedule());
+        if (request.getBlockedDates() != null) metadata.setBlockedDates(request.getBlockedDates());
+        if (request.getSpecialDates() != null) metadata.setSpecialDates(request.getSpecialDates());
+        if (request.getSlotDurationMinutes() != null) metadata.setSlotDurationMinutes(request.getSlotDurationMinutes());
+        if (request.getAutoApproveBookings() != null) metadata.setAutoApproveBookings(request.getAutoApproveBookings());
+        if (request.getAvailabilityWindow() != null) metadata.setAvailabilityWindow(request.getAvailabilityWindow());
+        
         repo.save(metadata);
         return toResponse(metadata);
     }
@@ -45,6 +78,12 @@ public class VendorMetadataService {
         response.setExtraInfo(metadata.getExtraInfo());
         response.setImages(metadata.getImages());
         response.setAvailabilityWindow(metadata.getAvailabilityWindow());
+        // Add new availability fields to response
+        response.setDailySchedule(metadata.getDailySchedule());
+        response.setBlockedDates(metadata.getBlockedDates());
+        response.setSpecialDates(metadata.getSpecialDates());
+        response.setSlotDurationMinutes(metadata.getSlotDurationMinutes());
+        response.setAutoApproveBookings(metadata.getAutoApproveBookings());
         return response;
     } 
 }

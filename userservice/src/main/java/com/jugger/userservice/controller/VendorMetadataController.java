@@ -29,6 +29,11 @@ public class VendorMetadataController {
         return ResponseEntity.ok(service.addMetadata(request));
     }
 
+    @PostMapping("/availability-schedule")
+    public ResponseEntity<VendorMetadataResponse> setAvailabilitySchedule(@RequestBody VendorMetadataRequest request) {
+        return ResponseEntity.ok(service.updateAvailabilitySchedule(request));
+    }
+
     @GetMapping("/{vendorId}/metadata")
     public ResponseEntity<List<VendorMetadataResponse>> getVendorMetadata(@PathVariable Long vendorId) {
         return ResponseEntity.ok(service.getVendorServices(vendorId));

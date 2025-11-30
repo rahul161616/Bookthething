@@ -1,21 +1,23 @@
 # Build stage
-FROM openjdk:21-jdk-slim as build
-
-# Install Maven
-RUN apt-get update && apt-get install -y maven && apt-get clean
+FROM eclipse-temurin:21-jdk as build
 
 WORKDIR /app
 
-# Copy pom.xml and download dependencies (for better caching)
+# Copy Maven wrapper and pom.xml
+COPY mvnw .
+COPY mvnw.cmd .
+COPY .mvn .mvn
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+
+# Make mvnw executable
+RUN chmod +x ./mvnw
 
 # Copy source code and build
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN ./mvnw clean package -DskipTests
 
 # Runtime stage
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 

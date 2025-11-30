@@ -22,6 +22,8 @@ public class UserProfileService {
         profile.setUserId(request.getUserId());
         profile.setUsername(request.getUsername());
         profile.setEmail(request.getEmail());
+        profile.setPhone(request.getPhone());
+        profile.setAddress(request.getAddress());
         repo.save(profile);
 
         return toResponse(profile);
